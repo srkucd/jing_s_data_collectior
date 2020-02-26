@@ -3,14 +3,15 @@ import json
 import ssl
 import pandas as pd
 
-ssl._create_default_https_context = ssl._create_unverified_context
-
 
 def african_country_name():
+    pd.options.display.float_format = '{:20,.2f}'.format
+    ssl._create_default_https_context = ssl._create_unverified_context
     """
     select all African countries name, income level and ISO-2-code.
     :return: country name list, country income list, country code list.
     """
+    global country_code_list
     country_url = 'https://api.worldbank.org/v2/country/?per_page=999&format=json'
     the_world = json.loads(urllib.request.urlopen(country_url).read())[1]
     country_name_list = []
@@ -33,8 +34,6 @@ def african_country_name():
             continue
     return country_name_list, country_code_list, country_income_list
 
-
-country_name, country_code, country_income = african_country_name()
 
 def african_country_data():
     """
@@ -66,16 +65,13 @@ def african_country_data():
             continue
 
     indicator_list = []
-    country_code_list = []
-    column_header = the_world_data[0].get('indicator').get('value')
+    world_country_code_list = []
+    column_header = the_world_data[0].get('indicator').get('value') + '_' + str(year)
     for each in the_world_data:
-        if each.get('country').get('id') in country_code:
+        if each.get('country').get('id') in country_code_list:
             indicator_list.append(each.get('value'))
-            country_code_list.append(each.get('country').get('id'))
-    return indicator_list, country_code_list, column_header
-
-
-world_indicators, world_data_country_code, column_header = african_country_data()
+            world_country_code_list.append(each.get('country').get('id'))
+    return indicator_list, world_country_code_list, column_header
 
 
 def data_cleaning(standard_country_code, changed_country_code, indicator):
@@ -99,9 +95,6 @@ def data_cleaning(standard_country_code, changed_country_code, indicator):
     return country_code_list, indicator_list
 
 
-data_country_code, indicators = data_cleaning(country_code, world_data_country_code, world_indicators)
-
-
 def df_generator(target_country_code, country_name, country_income, data_country_code, indicator, header):
     """
     Combine the first indicator data and the country data as pandas dataframe.
@@ -113,16 +106,73 @@ def df_generator(target_country_code, country_name, country_income, data_country
     :param header: title of indicator data column.
     :return: Combined dataframe of the first indicator and country details.
     """
+    global merged_df
     df_country = pd.DataFrame(list(zip(target_country_code,country_name,country_income)),
-                                   columns = ['Country Code','Country Name','Income Level'])
+                                   columns=['Country Code','Country Name','Income Level'])
 
     df_data = pd.DataFrame(list(zip(data_country_code,indicator)),
-                           columns = ['Country Code',str(header)])
+                           columns=['Country Code',str(header)])
 
-    merged_df = df_country.merge(df_data, on='Country Code', how = 'inner')
+    merged_df = df_country.merge(df_data, on='Country Code', how='inner')
 
     return merged_df
 
-df = df_generator(country_code, country_name, country_income, data_country_code, indicators, column_header)
-print(df.head())
 
+def one_more_column(old_df):
+    """
+    Add one more column on our existing dataframe.
+    :param old_df:exist dataframe created by df_generator
+    :return: new dataframe with extra generator.
+    """
+    def column_generator(old_df):
+        """
+        Create new panda Series
+        :param old_df: Original dataset created by df_generator
+        :return:Panda Series going to combine with old dataset.
+        """
+        one_more_country_code, one_more_indicator, one_more_header = african_country_data()
+        one_more_df = pd.DataFrame(list(zip(one_more_indicator, one_more_country_code)),
+                                   columns=['Country Code', str(one_more_header)])
+        new_df =  old_df.merge(one_more_df, on='Country Code', how='inner')
+        column = new_df[str(one_more_header)]
+
+        return column, one_more_header
+
+    while True:
+        one_more = input("Do you need one more column? Y/N")
+        if one_more.lower() == 'y':
+            new_col, header = column_generator(merged_df)
+            old_df[header] = new_col
+            break
+        elif one_more.lower() == 'n':
+            print("Okay, thanks for the information. That's all for this time.")
+            return old_df
+        else:
+            print("Invalid value, please make sure only letter Y and N allowed here.")
+            break
+
+    while True:
+        more = input("Do you need one more column? Y/N")
+        if more.lower() == 'y':
+            more_col, more_header = column_generator(merged_df)
+            old_df[more_header] = more_col
+            continue
+        elif more.lower() == 'n':
+            print("Okay, thanks for the information. That's all for this time.")
+            break
+        else:
+            print("Invalid value, please make sure only letter Y and N allowed here.")
+            continue
+
+    return old_df
+
+
+def csv_generator(final_df):
+    filename = input("Good. Last step, please enter the name of your CSV file.")
+    final_df.to_csv(str(filename) + '.csv', index=None, header=True)
+
+#Function est code:
+# country_name, country_code, country_income = african_country_name()
+# world_indicators, world_data_country_code, column_header = african_country_data()
+# data_country_code, indicators = data_cleaning(country_code, world_data_country_code, world_indicators)
+# df = df_generator(country_code, country_name, country_income, data_country_code, indicators, column_header)

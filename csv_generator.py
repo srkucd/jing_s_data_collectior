@@ -167,7 +167,7 @@ def one_more_column(old_df):
     return old_df
 
 
-def csv_generator(final_df):
+def csv_export(final_df):
     filename = input("Good. Last step, please enter the name of your CSV file.")
     final_df.to_csv(str(filename) + '.csv', index=None, header=True)
 

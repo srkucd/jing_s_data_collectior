@@ -171,7 +171,7 @@ def csv_export(final_df):
     filename = input("Good. Last step, please enter the name of your CSV file.")
     final_df.to_csv(str(filename) + '.csv', index=None, header=True)
 
-#Function est code:
+#Function test code:
 # country_name, country_code, country_income = african_country_name()
 # world_indicators, world_data_country_code, column_header = african_country_data()
 # data_country_code, indicators = data_cleaning(country_code, world_data_country_code, world_indicators)

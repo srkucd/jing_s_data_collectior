@@ -21,7 +21,7 @@ def african_country_name():
                                 'Kuwait',
                                 'Lebanon', 'Malta', 'West Bank and Gaza', 'Qatar', 'Saudi Arabia', 'Sudan',
                                 'Syrian Arab Republic',
-                                'Yemen, Rep.']
+                                'Yemen, Rep.','Oman']
     for each in the_world:
         if 'Africa' in each.get('region').get('value'):
             if each.get('name') not in middle_east_country_name:
